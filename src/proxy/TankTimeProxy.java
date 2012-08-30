@@ -1,6 +1,6 @@
 package proxy;
 import proxy.simple.Moveable;
-public class TankTimeProxy implements java.io.Serializable{
+public class TankTimeProxy implements Moveable{
 Moveable t;
 public TankTimeProxy(Moveable t){
 	 super();
