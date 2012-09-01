@@ -2,8 +2,8 @@ package proxy;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 
@@ -16,30 +16,48 @@ import proxy.simple.Moveable;
 import proxy.simple.Tank;
 
 public class Proxy {
-	public static Object newProxyInstance(Class infce) throws Exception{
+	public static Object newProxyInstance(Class infce, InvocationHandler h) throws Exception{
 		String rt = "\r\n";
-		String src =
+		String methodStr = "";
+		String src = "";
+		
+		Method[] methods = infce.getMethods();
+		/*
+		for(Method m : methods){
+			methodStr += "@Override" + rt + 
+						 "public void " + m.getName() + "() {" + rt +
+						 "	 long start = System.currentTimeMillis();" + rt +
+						 "	 System.out.println(\"Start Time: \" + start + \"ms\");" + rt +
+						 "	 t." + m.getName() +"();" + rt +
+						 "	 long end = System.currentTimeMillis();" + rt +
+						 "	 System.out.println(\"time: \" + (end - start) + \"ms\");" + rt +
+						 "}";
+		}*/
+		//循环动态生成代理方法
+		for(Method m : methods){
+			methodStr += "@Override" + rt + 
+						 "public void " + m.getName() + "() {" + rt +
+						 "    try{" + rt +
+						 "    Method md = " + infce.getName() +".class.getMethod(\"" +m.getName() +"\");"+  rt +
+						 "    h.invoke(this, md);" + rt +
+						 "    }catch(Exception e){e.printStackTrace();}" + rt +
+						 "}";
+		 src =
 		"package proxy;" + rt +
 		"import proxy.simple.Moveable;" + rt +
+		"import java.lang.reflect.Method;" + rt +
 		"public class TankTimeProxy implements "+ infce.getName() +"{" + rt +
 
-			"Moveable t;" + rt +
-			"public TankTimeProxy(Moveable t){" + rt +
-			"	 super();" + rt +
-			"	 this.t = t;" + rt +
-			"}" + rt +
-			"@Override" + rt +
-			"public void move() {" + rt +
-			"	 long start = System.currentTimeMillis();" + rt +
-			"	 System.out.println(\"Start Time: \" + start + \"ms\");" + rt +
-			"	 t.move();" + rt +
-			"	 long end = System.currentTimeMillis();" + rt +
-			"	 System.out.println(\"time: \" + (end - start) + \"ms\");" + rt +
-			"}" + rt +
-
-		"}" ; 
-		
-String fileName = System.getProperty("user.dir") + "/src/proxy/TankTimeProxy.java";
+		"	proxy.InvocationHandler h;" + rt +
+		"	public TankTimeProxy(InvocationHandler h){" + rt +
+		"		 super();" + rt +
+		"		 this.h = h;" + rt +
+		"	}" + rt +
+		//方法体
+		methodStr + rt +
+		"}"; 
+		}
+		String fileName = "d:/src/proxy/TankTimeProxy.java";
 		
 		File f = new File(fileName);
 		FileWriter fw = new FileWriter(f);
@@ -49,7 +67,7 @@ String fileName = System.getProperty("user.dir") + "/src/proxy/TankTimeProxy.jav
 		
 		//编译文件代码（compiler）
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();  //获取当前java编译器，并赋给java编译器对象compiler
-		System.out.println(compiler); //need jdk1.6  这里需要jdk，非jre
+		//System.out.println(compiler); //need jdk1.6  这里需要jdk，非jre
 		
 		StandardJavaFileManager fileMgr = compiler.getStandardFileManager(null, null, null);
 		Iterable units =  fileMgr.getJavaFileObjects(fileName);
@@ -58,15 +76,15 @@ String fileName = System.getProperty("user.dir") + "/src/proxy/TankTimeProxy.jav
 		fileMgr.close();
 		
 		//load into memory and 
-		URL[] urls = new URL[]{new URL("file:/" + System.getProperty("user.dir") + "/src/")};  //class 路径地址
+		URL[] urls = new URL[]{new URL("file:/" +"d:/src/")};  //class 路径地址
 		URLClassLoader ul = new URLClassLoader(urls);
 		Class c = ul.loadClass("proxy.TankTimeProxy");  //加载
-		System.out.println(c);
+		//System.out.println(c);
 		
 		//create an instance
-		Constructor ct = c.getConstructor(Moveable.class);
-		Moveable m = (Moveable) ct.newInstance(new Tank());
-		m.move();
-		return null;
+		Constructor ct = c.getConstructor(InvocationHandler.class);
+		Object o = ct.newInstance(h);
+		//System.out.println(o.getClass().getName());
+		return o;
 	}
 }

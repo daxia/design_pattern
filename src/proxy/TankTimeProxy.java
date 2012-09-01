@@ -1,6 +1,6 @@
 package proxy;
 import proxy.simple.Moveable;
-public class TankTimeProxy implements Moveable{
+public class TankTimeProxy implements proxy.simple.Moveable{
 Moveable t;
 public TankTimeProxy(Moveable t){
 	 super();
